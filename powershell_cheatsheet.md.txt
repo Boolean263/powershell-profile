@@ -1,0 +1,341 @@
+# My PowerShell cheat sheet
+
+## Finding commands
+
+`Get-Help` is a core cmdlet. `help` wraps its output up in `more`.
+You can run it simply as eg. `help Get-Help` which implies `help -Name Get-Help`.
+You can add `-Examples` to see example usage, or `-Full` to see all the sections.
+
+PowerShell commands are in Verb-Noun format.
+You can search for a suitable command with `Get-Command` and adding either (or both) of `-Verb` or `-Noun`.
+Either one takes glob wildcards; e.g. `Get-Command -Noun alias*`
+
+## Basic syntax
+
+Break up a long line with newlines by adding a backtick before each newline.
+
+Use `Write-Host` for simple `echo`-like output.
+
+## Useful commands
+
+* `Get-ChildItem [$path]` : lists all items in the given path
+    * This is what the aliases `ls` and `dir` do
+    * the path `env:` shows all environment variables
+* `Get-Variable` : show all variables in the current session
+* `Get-Command` : sort of like `which`
+
+## Useful "filters"
+
+(That's not a PowerShell term, it's my name for commands that take an input and do stuff to it.)
+
+* `| Where-Object PropName -eq "value"` : Simple filtering
+* `| Where-Object {$_.PropName -eq "value"}` : filtering via code block
+  NB. Cmdlets which can do their own filtering are more efficient than adding `Where-Object`.
+  Example: `Get-Process -Name procname`
+* `| Get-Member` : Show the type and all members of the input(s),
+  one iteration per unique type of input
+    * Can add `-Name C*` to find properties that start with C
+* `| Sort-Object [-Property] prop[, prop, ...]` : sorts a list of objects by the value of the named property
+    * `| Sort-Object -Unique` : like linux `sort | uniq`
+    * `| Sort-Object -Property @{Expression = "Prop1"; Descending = $True}, @{Expression = "Prop2"; Descending = $False}`
+* `| Select-Object *` : see what an object is made of
+* `| Select-Object -First $N` : Get the first N objects from the input list
+  (can also add `*` after to see what that object is made of)
+
+If no filter is used, PowerShell automatically adds the `Out-Default` command.
+This may not show all properties, hence `Select-Object`. Other options:
+
+* `| Format-List [-Property prop, prop, ...]` (or `-Property *`)
+* `| Format-Table [-Property ...]`
+
+Empirically, it looks like `Out-Default` uses `Format-Table` with no arguments.
+
+The documentation says `Format-List` uses presentation names for the property keys and that you need to use `Get-Member` to get the actual parameter names.
+In my experimentation the two seem to give the same results.
+
+Principle to keep in mind when combining filters: *Filter left, forormat right*.
+That is, reduce the result set early on, so the formatting (or other follow-on work) isn't processing stuff you'd be ditching anyway.
+(Also, some formatting commands may remove properties from their inputs which you wanted.)
+
+## Useful global variables
+
+* `$PSVersionTable` : about currently running PowerShell version
+* `$Profile` : paths for all profiles
+
+You can see the values of these by simply typing them at the prompt.
+This is actually a helpful way to learn about PowerShell data.
+For example:
+
+    $Profile | Select-Object *
+
+To find other global variables, use `Get-Variable`.
+
+## Strings
+
+Double-quoted strings are interpolated, single-quoted strings aren't:
+
+    $name = "David"
+    'Hello $name'           # Hello $name
+    "Hello $name"           # Hello David
+    "Len=$name.length"      # Len=David.length
+    "Len=$($name.length)"   # Len=5
+
+## (Non-Assignment) Operators
+
+Standard arithmetic: `+`, `-`, `*`, `/`, `%`
+
+Ternary operator: `? :`
+
+String catenation and repetition: `+` and `*` respectively
+
+Bitwise operators: `-band`, `-bor`, `-bxor`, `-bnot`, `-shl`, `-shr`
+
+Logical operators: `-and`, `-or`, `-xor`; logical negation is `-not` or `!`
+
+Comparison operators: `-eq`, `-ne`, `-lt`, `-le`, `-gt`, `-ge`
+
+Strings can be tested against globs with `-like` and `-notlike`: `"abc" -like "a*"`
+
+Strings can be tested against regexes with `-match` and `-notmatch`: `"abc" -match "^a"`
+
+String regex replacement is an operator, `-replace`: `Get-ChildItem *.txt | Rename-Item -NewName { $_.name -replace '\.txt$','.log' }`
+(The second argument after the operator can be a script block inside `{`/`}`.)
+If used on a collection, acts on every matching element of the collection.
+
+String split is an operator, `-split`: `$s -split ["regex" [, $n [, "options"]]]`
+By default, splits on whitespace. Use `help about_Split` for more.
+
+String join is an operator, `-join`: `$a -join ","`
+
+All of the above operators and comparisons are case-insensitive for strings.
+Add a `c` prefix to make it case-sensitive; eg, `-ceq`.
+Add a `i` prefix to make it explicit that it's case-insensitive; eg, `-ieq`.
+
+Collection (list/array) containment operators:
+* `$scalar -[c][not]in $collection`
+* `$collection -[c][not]contains $scalar`
+
+Those only work on collections.
+For hash tables, need `$h.ContainsKey()` (which is case-*insensitive*)
+and `$h.ContainsValue()` (which is case-*sensitive*).
+
+Type comparison operators: `-is`, `-isnot`: `$a -is [int]`
+
+Truthiness: Empty strings, empty collections, the number 0, and `$null` are false.
+Anything else is true, including an empty hash table.
+Gotcha: a collection with only one element has the truthiness of *that element*!
+
+"Null-coalescing" operator: `$a ?? $foo` evaluates to `$a` if it's not null, or `$foo` if it is.
+
+## Data structures
+
+### Collections (arrays, lists)
+
+    $a = @("one", "two", 3, "four")
+    Write-Host $a[0]        # one
+    $a[2] += 2              # makes it 5
+    "one" -in $a            # true -- case-insensitive
+    "One" -in $a            # true -- case-insensitive
+    "One" -cin $a           # false -- force case-sensitive
+    $a.contains("One")      # false -- case-sensitive
+    $a.length               # 4
+
+### Hash tables (hashes, dictionaries)
+
+    $h = @{one=1; two=2; three=3}
+    $h.stu = 3
+    $h["stu"] += 1 # now stu=4
+    $h.remove("stu")
+    $h[4] = "four"
+    $h.containsKey("one") # true
+    $h.containsKey("One") # true -- case-insensitive
+    $h.containsValue("four") # true
+    $h.containsValue("Four") # false -- case-sensitive!
+
+## Flow control
+
+### If
+
+    If (condition) {
+        ...
+    } ElseIf (condition) {
+        ...
+    } Else {
+        ...
+    }
+
+On the command line, you need to "hug" your Elses.
+This isn't required in scripts.
+
+You can assign the result of an `If` to a variable, as in `$a = If(...) {...}`
+
+### Switch
+
+Standard `Switch` statements behave as expected.
+Only one branch is run.
+
+    Switch ($choice) {
+        1 { Write-Host "You selected menu item 1" }
+        2 { Write-Host "You selected menu item 2" }
+        3 { Write-Host "You selected menu item 3" }
+        Default { Write-Host "You did not select a valid option" }
+    }
+
+`Switch` supports `-WildCard` and `-RegEx` to perform matching.
+Note: multiple branches can be run in this case!
+For example, inputting "10.1.2.3" to the following code will run the first two branches:
+
+    Switch -WildCard ($ip) {
+        "10.*" { Write-Host "This computer is on the internal network" }
+        "10.1.*" { Write-Host "This computer is in London" }
+        "10.2.*" { Write-Host "This computer is in Vancouver" }
+        Default { Write-Host "This computer is not on the internal network" }
+    }
+
+### ForEach
+
+`ForEach` and `ForEach-Object` seem to be identical.
+
+    ForEach ($user in $users) {
+        Set-ADUser $user -Department "Marketing"
+    }
+
+    $users | ForEach-Object -Parallel [-ThrottleLimit 5] {
+        Set-ADUser $user -Department "Marketing"
+    }
+
+PowerShell also has `Break` and `Continue`.
+
+### For, While, Until
+
+Generally `ForEach` is preferred for iterating over a list, but PowerShell has the standards as well:
+
+    For($i=1; $i -le 10; $i++) {
+        Write-Host "Loop number $i"
+    }
+
+    While ($answer -eq "go") {
+        Write-Host "Script block to process"
+    }
+
+    Do {
+        Write-Host "Script block to process"
+    } While ($answer -eq "go")
+
+    Do {
+        Write-Host "Script block to process"
+    } Until ($answer -eq "stop")
+
+### Exception handling
+
+    Try {
+        # Do something with a file.
+        Get-Content './file.txt' -ErrorAction Stop
+
+        # Or just throw a generic string Exception.
+        Throw "Nope"
+
+        # Or an object of any sort,
+        # though specific exceptions may be most helpful.
+        Throw (New-Object System.FormatException)
+    } Catch [System.IO.IOException] {
+        Write-Host "Something IO-related went wrong: $($_.exception.message)"
+    }  Catch {
+        Write-Host "Something else went wrong: $($_.exception.message)"
+    } Finally {
+        # Clean up resources.
+    }
+
+## Assignment operators
+
+PowerShell uses `=` for assignment.
+It has the standard assignment operators: `++`, `--`, `+=`, etc.
+There's also `??=` to assign a value to a variable, but only if that variable contains null.
+
+`=` has lower operator precedence than `|` so you don't need parentheses for something like:
+
+    $n = Get-Service | Sort-Object -Property name
+
+There's no special syntax for creating an array:
+
+    $a = "one", "two", "three", "four"
+
+But there is for creating a hash:
+
+    $h = @{one=1; two=2; three=3}
+
+The `+=` operator can concatenate strings, and append elements to variables which are already arrays.
+
+    $a += "five"
+
+It can act on individual array elements of course:
+
+    $a[0] += " un"
+
+It can concatenate hash tables, too:
+
+    $h += @{four=4}
+
+## Scripting
+
+### Functions
+
+    function Foo {
+        Write-host "Foo"
+    }
+
+To show a function's definition: `$function:Foo`
+Or more properly: `(Get-Command Foo).Definition`
+Or more verbosely: `Get-Command Foo | Select -ExpandProperty ScriptBlock`
+
+### Parameters
+
+A `Param()` block at the top of the script or function specifies parameters which can be specified on the script's command line.
+
+    Param(
+        [switch]$DoSomething,   # Boolean, is $false if user doesn't use it
+        [int]$Stu,              # Defaults to 0
+        [float]$PI = 3.14,      # Default value if not given by user
+        [string]$Message = "Hello world"
+        # Note the trailing comma on all but the last option!
+    )
+
+The variable name becomes the parameter name; e.g. the above script has parameters for `-PI`, `-Stu`, etc. which become those variables.
+
+Parameters are optional. You can make one mandatory by prefixing its specification with a decorator:
+
+    Param(
+        [Parameter(Mandatory, HelpMessage="something")]
+        [int]$Stu,
+    )
+
+(The decorator can also be on the same line as the parameter.)
+If the user doesn't specify a mandatory parameter, they're prompted to type it in. They can type `!?` to see the help message.
+
+To collect all parameters that were passed to the function (a la bash `"$@"`) but aren't handled by `Param()`s you specified, use `$args`.
+
+**NOTE!!** Parameters are positional too! This means it's different to have optional parameters and then an arbitrary list of arguments. They can't just be space-separated like in traditional shell scripts. Instead you need a param that gives e.g. `[string[]]` as its type, and multiple values on the command line need to be comma-separated instead of just space-separated.
+
+## Modules
+
+Modules are text files with `.psd1` or `.psm1` extensions. The environment variable `$env:PSModulePath` is a search path for finding them; semicolon-separated paths in this var are searched recursively.
+
+The Microsoft docs say the default per-user location is `$HOME\Documents\PowerShell\Modules`, and goes into detail about the `Documents` folder location.
+What's not clear to me is whether it's tied specifically to `Documents` or to `$profile.CurrentUserAllHosts` (which defaults to `$HOME\Documents\PowerShell\profile.ps1`).
+<https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.5>
+
+"A module is a self-contained, reusable unit that can include cmdlets, providers, functions, variables, and other resources. By default, PowerShell automatically loads an installed module the first time you use a command from the module."
+<https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_modules?view=powershell-7.5>
+
+You can also manually load a module using `Import-Module -Name "C:\Full\path\to\module.psm1"`.
+
+Use `Get-Module` to see what modules are currently loaded.
+
+Use `Get-Command -Module ModuleName` to see what commands are exported by the module.
+
+Use `Remove-Module ModuleName` to unload a module.
+
+
+## Other weird stuff
+
+The `&` operator is the *call* operator. It lets you run commands that are in strings or otherwise stored in variables.
