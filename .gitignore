@@ -1,0 +1,5 @@
+# Ignore everything by default, add files using -f
+/*
+
+# Explicitly include my profile.ps1
+!profile.ps1
