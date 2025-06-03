@@ -25,7 +25,7 @@ Function touch {
     # Workaround for now
     $NewDate = Get-Date
 
-    ForEach-Object $args {
+    ForEach-Object ($args) {
         If (Test-Path -Path $_) {
             (Get-Item $_).LastWriteTime = $NewDate
         }
