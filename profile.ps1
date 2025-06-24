@@ -12,6 +12,9 @@
 # for running PowerShell within, since the docs state Visual Studio
 # can have its own host.
 
+# Import modules that make my PowerShell life easier
+Import-Module "$HOME\Documents\PowerShell\Modules\EnvPaths.psm1"
+
 # Create my own alias for PowerShell's version of "which"
 New-Alias -name which -Value Get-Command
 
