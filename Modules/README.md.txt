@@ -11,6 +11,12 @@ So, assuming that `$Profile.CurrentUserAllHosts` is in its default location
 of `$HOME\Documents\PowerShell`, PowerShell would automatically load `Modules\EnvPaths\EnvPaths.psm1`
 but *not* `Modules\EnvPaths.psm1`; I had import the ltter manually using `Import-Module`.
 
+To see all modules that are availale in `$Env:PSModulePath`, use this command:
+
+    Get-Module -ListAvailable
+
+# Future Durdling
+
 For my own helper modules, it seems a bit much to have a separate directory *and* file
 for each one. In the future I'll probbly create a `Modules\Boolean263\Boolean263.psm1`
 which imports other `.psm1` files that exist in its directory.
