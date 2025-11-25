@@ -27,6 +27,14 @@
 # PowerShell would automatically import it.
 # See Modules\README.md.txt for details.
 
+# Add my user Python environment, if it exists
+& {
+    $myPyPath = "C:\Users\boole\Documents\pyvenv\ForPowerShell\Scripts"
+    if (Test-Path -Path $myPyPath) {
+        Add-EnvPath -First $myPyPath
+    }
+}
+
 # Create my own alias for PowerShell's version of "which"
 New-Alias -name which -Value Get-Command
 
