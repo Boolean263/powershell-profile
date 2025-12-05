@@ -9,7 +9,7 @@ as long as these conditions are met:
 
 So, assuming that `$Profile.CurrentUserAllHosts` is in its default location
 of `$HOME\Documents\PowerShell`, PowerShell would automatically load `Modules\EnvPaths\EnvPaths.psm1`
-but *not* `Modules\EnvPaths.psm1`; I had import the ltter manually using `Import-Module`.
+but *not* `Modules\EnvPaths.psm1`; I had import the latter manually using `Import-Module`.
 
 To see all modules that are availale in `$Env:PSModulePath`, use this command:
 

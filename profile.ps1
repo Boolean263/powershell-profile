@@ -16,20 +16,33 @@
 # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles
 #
 # NOTE: If you use Windows Explorer to move your Documents folder
-# out of $HOME, then PowerShell will still look for its
+# out of $USERPROFILE, then PowerShell will look for its
 # CurrentUser profiles in the PowerShell subdirectory of the new
 # Documents folder. However, since that path is no longer
-# $HOME\Documents\PowerShell, a statement like this might not work:
+# $USERPROFILE\Documents\PowerShell, a statement like this might not work:
 #
-#    Import-Module "$HOME\Documents\PowerShell\Modules\EnvPaths.psm1"
+#    Import-Module "$env:USERPROFILE\Documents\PowerShell\Modules\EnvPaths.psm1"
 #
-# I worked around that by moving EnvPaths.psm1 to a location where
+# Nominally, this code would accommodate a moved Documents folder,
+# but it doesn't work on a test system, since the GetFolderPath call
+# returns an empty string:
+#
+#    Import-Module [Environment]::GetFolderPath("MyDocuments") + "\PowerShell\Modules\EnvPaths.psm1"
+#
+# Something like this seems more likely to work (note extra parentheses):
+#
+#    Import-Module ((Get-Item $profile.CurrentUserAllHosts).Directory.ToString() + "\Modules\EnvPaths.psm1")
+#
+# But I worked around it by moving EnvPaths.psm1 to a location where
 # PowerShell would automatically import it.
 # See Modules\README.md.txt for details.
 
-# Add my user Python environment, if it exists
+# Add my user Python virtual environment, if it exists.
+# I'm putting it in my $USERPROFILE folder because of the weirdness
+# mentioned above around the Documents folder, and
+# also because I use some systems where Documents is on a slow network drive.
 & {
-    $myPyPath = "C:\Users\boole\Documents\pyvenv\ForPowerShell\Scripts"
+    $MyPyPath = "$env:USERPROFILE\PSPyVEnv\Scripts"
     if (Test-Path -Path $myPyPath) {
         Add-EnvPath -First $myPyPath
     }
