@@ -15,6 +15,15 @@ To see all modules that are availale in `$Env:PSModulePath`, use this command:
 
     Get-Module -ListAvailable
 
+## Loading Other Modules
+
+To manually load a module that isn't in this path, use this command:
+
+    Import-Module c:\path\to\module.psm1
+
+This is handy for encapsulating a set of functions you need in a specific circumstance,
+but don't need or want to be automatically loaded.
+
 # Future Durdling
 
 For my own helper modules, it seems a bit much to have a separate directory *and* file
@@ -26,3 +35,5 @@ which imports other `.psm1` files that exist in its directory.
 * [about\_Modules](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_modules)
 * [How to Write a PowerShell Script Module](https://learn.microsoft.com/en-us/powershell/scripting/developer/module/how-to-write-a-powershell-script-module)
 * Stack Overflow: [What's the best way to determine the location of the current PowerShell script?](https://stackoverflow.com/q/5466329)
+* Stack Overflow: [How do I define a function and call it from the PowerShell commandline?](https://stackoverflow.com/a/6040725)
+
