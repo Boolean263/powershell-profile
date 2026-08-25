@@ -76,4 +76,4 @@ Function touch {
 # (which they are on systems I own).
 # NB. This duplicates some of the configuration in my `~/.config/environment.d`
 # so maybe eventually I'll see if there's a way to parse those files here.
-$env:RIPGREP_CONFIG_PATH = "$env:XDG_CONFIG_HOME\.ripgreprc"
+$env:RIPGREP_CONFIG_PATH = "$env:XDG_CONFIG_HOME\ripgreprc"
